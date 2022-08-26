@@ -7,6 +7,7 @@ public class ExampleRepositoryImpl {
 	
 	
     public String get() {
+	System.out.printlkn("This is the output to see the pull request of the github");
         return "Hello JUnit and junes of sopra steria";	
     }
 
