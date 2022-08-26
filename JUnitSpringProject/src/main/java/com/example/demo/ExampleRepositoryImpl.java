@@ -7,7 +7,7 @@ public class ExampleRepositoryImpl {
 	
 	
     public String get() {
-        return "Hello JUnit 5";
+        return "Hello JUnit and junes of sopra steria";	
     }
 
 	public String getById(int id) {
