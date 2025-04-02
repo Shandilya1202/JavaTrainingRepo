@@ -1,0 +1,164 @@
+With regard to internationalization (“i18n”), Spring’s various MessageSource implementations follow
+the same locale resolution and fallback rules as the standard JDK ResourceBundle. In short, and
+continuing with the example messageSource defined previously, if you want to resolve messages
+against the British (en-GB) locale, you would create files called format_en_GB.properties,
+exceptions_en_GB.properties, and windows_en_GB.properties, respectively.
+
+public static void main(final String[] args) {
+  MessageSource resources = new ClassPathXmlApplicationContext("beans.xml");
+  String message = resources.getMessage("argument.required",
+  new Object [] {"userDao"}, "Required", Locale.UK);
+  System.out.println(message);
+}
+
+Also use MessageSourceAware interface :- acquire MessageSource refernce
+Bean Defined - in -> Application Context -> (implement) MessageSourceAware interface 
+Bean injected with the application Context's MessageSource whent the bean is created and configured.
+MessageSource based on Java's ResourceBundle.
+
+Standard anc Custom Events :-
+ApplicationEvent class  and ApplicationListner interface -> provide event handling in ApplicationContext.
+
+bean -impl-> ApplicationListner -deployed -> ApplicationContext 
+Bean notified everytime an ApplicationEvent get published to ApplicationContext.
+Design Pattern :- Observer desgin Pattern
+
+Spring 4.0 Annotation-base model in event 
+
+Build-in Events :-
+ContextRefreshedEvent :- Published when the ApplicationContext is initialized or refreshed
+“initialized” means that all beans are loaded, post-processor beans are detected and
+activated, singletons are pre-instantiated, and the ApplicationContext object is ready for use
+
+ContextStartedEvent :- Published when the ApplicationContext is started by using the
+start() method on the ConfigurableApplicationContext interface.  “started” means that all Lifecycle beans receive an explicit
+start signal.
+
+ContextStoppedEvent :- Published when the ApplicationContext is stopped by using the stop() method on the ConfigurableApplicationContext interface. Here, “stopped” means that all Lifecycle beans receive an explicit
+stop signal. A stopped context may be restarted through a start() call.
+
+ContextClosedEvent :- Published when the ApplicationContext is being closed by using the
+close() method on the ConfigurableApplicationContext interface or
+via a JVM shutdown hook. Here, "closed" means that all singleton
+beans will be destroyed. Once the context is closed, it reaches its end
+of life and cannot be refreshed or restarted.
+
+RequestHandledEvent :- A web-specific event telling all beans that an HTTP request has been
+serviced. This event is published after the request is complete. This
+event is only applicable to web applications that use Spring’s
+DispatcherServlet.
+
+ServletRequestHandledEvent :- A subclass of RequestHandledEvent that adds Servlet-specific context
+information.
+
+***** By Default event listeners receive events synchronously. But you can register as many event
+listner as you wish.This means that the publishEvent() method blocks until all listeners have 
+finished processing the event. One advantage of this synchronous and single-threaded approach 
+is that, when a listener receives an event, it operates inside the transaction context of the 
+publisher if a transaction context is available.
+**********************
+Annotation-based Event Listeners :-
+You can register an event listener on any method of a managed bean by using the @EventListener
+annotation.
+public class BlockedListNotifier {
+  private String notificationAddress;
+  public void setNotificationAddress(String notificationAddress) {
+  this.notificationAddress = notificationAddress;
+  }
+//annotation used 
+  @EventListener
+  public void processBlockedListEvent(BlockedListEvent event) {
+  // notify appropriate parties via notificationAddress...
+  }
+}
+
+Benefit :- 
+Flexible name and without implements to specific listener interface.
+Event type can also be narrowred through generics.
+
+Registering an Event Listener with @EventListener
+You can annotate any method in a Spring bean with @EventListener to make it listen for a specific event.
+The event type is determined from the method's parameter.
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+
+@Component
+public class BlockedListNotifier {
+
+    private String notificationAddress;
+
+    public void setNotificationAddress(String notificationAddress) {
+        this.notificationAddress = notificationAddress;
+    }
+
+    @EventListener
+    public void processBlockedListEvent(BlockedListEvent event) {
+        // Notify appropriate parties using notificationAddress...
+        System.out.println("BlockedListEvent received. Notifying: " + notificationAddress);
+    }
+}
+The method listens for BlockedListEvent.
+No need to implement ApplicationListener manually.
+
+Listening to Multiple Events
+If a method should listen to multiple event types, specify them inside @EventListener.
+
+Example: Listening to Multiple Events
+
+@EventListener({ContextStartedEvent.class, ContextRefreshedEvent.class})
+public void handleContextEvents() {
+    System.out.println("ContextStartedEvent or ContextRefreshedEvent occurred");
+}
+
+Conditional Event Handling with SpEL
+You can filter events dynamically using Spring Expression Language (SpEL) inside 
+@EventListener.
+Example: Process Event Only If content Equals "my-event"
+@EventListener(condition = "#blEvent.content == 'my-event'")
+public void processBlockedListEvent(BlockedListEvent blEvent) {
+    System.out.println("Processing blocked list event: " + blEvent.getContent());
+}
+
+SpEL Context Variables Available:
+
+Name	             Description	            Example
+#root.event	       Access the event object	#root.event
+#args	Arguments    passed to the method	    #args[0] (first argument)
+#p0 / #a0	First    argument alias	           #p0.content == 'my-event'
+
+Publishing an Event from Another Event Listener
+An event listener method can return another event, which Spring will automatically 
+publish.
+
+Example: Forwarding an Event
+@EventListener
+public ListUpdateEvent handleBlockedListEvent(BlockedListEvent event) {
+    System.out.println("Handling BlockedListEvent and publishing ListUpdateEvent");
+    return new ListUpdateEvent(event.getSource(), "List Updated");
+}
+The method listens to BlockedListEvent and publishes a ListUpdateEvent.
+
+If multiple events need to be published, return a Collection or an array of events.
+
+Asynchronous Listner :-
+If you want a particular listener to process events asynchronously, you can reuse the regular @Async
+support.
+@EventListener
+@Async
+public void processBlockedListEvent(BlockedListEvent event) {
+  // BlockedListEvent is processed in a separate thread
+}
+
+Handling Exceptions in Asynchronous Event Listeners
+In Spring, event listeners can be executed asynchronously by using the @Async annotation. However, when an asynchronous event listener throws an exception:
+
+The exception is not propagated back to the caller.
+
+The caller continues execution without being blocked by the exception.
+
+Spring provides AsyncUncaughtExceptionHandler to handle uncaught exceptions.
+
+Additionally, asynchronous event listener methods cannot return a value to publish another event. 
+Instead, an ApplicationEventPublisher must 
+be used to manually publish events.
+line 212
